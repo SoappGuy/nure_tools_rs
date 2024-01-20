@@ -14,4 +14,4 @@ cargo add nure_tools
 ```shell
 cargo doc --open
 ```
-or visit [docs.rs](https://docs.rs/releases)
+or visit [docs.rs](https://docs.rs/nure_tools/latest/nure_tools/)
