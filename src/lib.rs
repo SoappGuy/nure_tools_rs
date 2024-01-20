@@ -1,6 +1,6 @@
 //! # nure_tools
 //!
-//! `nure_tools` is a crate to synchronously interact with mindenit API for getting nure scedule.
+//! `nure_tools` is a crate to synchronously interact with Mindenit API.
 
 /**
 Groups related functions
