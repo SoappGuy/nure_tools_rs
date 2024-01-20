@@ -7,6 +7,9 @@ description = "mindenit API wrapper"
 homepage = "https://github.com/SoappGuy/nure_tools_rs"
 repository = "https://github.com/SoappGuy/nure_tools_rs"
 readme = "README.md"
+exclude = [
+    ".vscode/"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
