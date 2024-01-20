@@ -2,7 +2,7 @@
 > **Warning**
 > The library is still under development. I will be happy to receive any feedback, and you can feel free to improve my code
 
-> Simple pyton library for Mindenit API
+> Simple rust crate for Mindenit API
 ****************************************************************
 # Installation
 ```shell
