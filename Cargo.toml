@@ -2,6 +2,11 @@
 name = "nure_tools"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+description = "mindenit API wrapper"
+homepage = "https://github.com/SoappGuy/nure_tools_rs"
+repository = "https://github.com/SoappGuy/nure_tools_rs"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,7 +14,6 @@ edition = "2021"
 chrono = "0.4.31"
 color-eyre = "0.6.2"
 dateparser = "0.2.1"
-error-chain = "0.12.4"
 regex = "1.10.2"
 reqwest = {version = "0.11.23", features = ["blocking", "json"]}
 serde_json = "1.0.111"
