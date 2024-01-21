@@ -1,6 +1,6 @@
 [package]
 name = "nure_tools"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license-file = "LICENSE"
 description = "mindenit API wrapper"
@@ -8,7 +8,8 @@ homepage = "https://github.com/SoappGuy/nure_tools_rs"
 repository = "https://github.com/SoappGuy/nure_tools_rs"
 readme = "README.md"
 exclude = [
-    ".vscode/"
+    ".vscode/",
+    "src/main.rs"
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

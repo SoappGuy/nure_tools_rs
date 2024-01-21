@@ -64,7 +64,7 @@ Returns all matched groups in `Vec<Group>` format.
 
 # Arguments
 
-* `name` - String with group name to search for.
+* `name` - &str with group name to search for.
 
 # Examples
 ```
@@ -74,33 +74,29 @@ use nure_tools::groups::{find_group, Group};
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let group: Vec<Group> = find_group(String::from("пзпі-23-2"))?;
+    let group: Vec<Group> = find_group("пзпі-23-2")?;
     println!("groups: {:#?}\n", group);
 
-    let group: Vec<Group> = find_group(String::from("пі-23"))?;
+    let group: Vec<Group> = find_group("пі-23")?;
     println!("groups: {:#?}\n", group);
 
     Ok(())
 }
 ```
 **/
-pub fn find_group(name: String) -> Result<Vec<Group>> {
+pub fn find_group(name: &str) -> Result<Vec<Group>> {
     let groups = get_groups()?;
     let mut result: Vec<Group> = vec![];
 
     for group in groups {
-        if find(&name, &group.name) {
+        if find(name, &group.name) {
             result.push(group);
         } else {
             continue;
         }
     }
 
-    if !result.is_empty() {
-        Ok(result)
-    } else {
-        Err(eyre!("Can't find group with name {}", name))
-    }
+    Ok(result)
 }
 
 /** Group struct.

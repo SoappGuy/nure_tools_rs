@@ -64,7 +64,7 @@ Returns all matched lecture_rooms in `Vec<LectureRoom>` format.
 
 # Arguments
 
-* `name` - String with lecture_room name to search for.
+* `name` - &str with lecture_room name to search for.
 
 # Examples
 ```
@@ -74,10 +74,10 @@ use nure_tools::lecture_rooms::{find_lecture_room, LectureRoom};
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let lecture_room: Vec<LectureRoom> = find_lecture_room(String::from("і"))?;
+    let lecture_room: Vec<LectureRoom> = find_lecture_room("і")?;
     println!("lecture_rooms: {:#?}\n", lecture_room);
 
-    let lecture_room: Vec<LectureRoom> = find_lecture_room(String::from("філія"))?;
+    let lecture_room: Vec<LectureRoom> = find_lecture_room("філія")?;
     println!("lecture_rooms: {:#?}\n", lecture_room);
 
     Ok(())
@@ -85,23 +85,19 @@ fn main() -> Result<()> {
 ```
 **/
 
-pub fn find_lecture_room(name: String) -> Result<Vec<LectureRoom>> {
+pub fn find_lecture_room(name: &str) -> Result<Vec<LectureRoom>> {
     let lecture_rooms = get_lecture_rooms()?;
     let mut result: Vec<LectureRoom> = vec![];
 
     for lecture_room in lecture_rooms {
-        if find(&name, &lecture_room.name) {
+        if find(name, &lecture_room.name) {
             result.push(lecture_room);
         } else {
             continue;
         }
     }
 
-    if !result.is_empty() {
-        Ok(result)
-    } else {
-        Err(eyre!("Can't find lecture_room with name {}", name))
-    }
+    Ok(result)
 }
 
 /** LectureRoom struct.

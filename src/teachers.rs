@@ -66,6 +66,10 @@ pub fn get_teachers() -> Result<Vec<Teacher>> {
 
 Returns all matched teachers in `Vec<Teacher>` format.
 
+# Arguments
+
+* `name` - &str with teacher name to search for.
+
 # Examples
 ```
 use color_eyre::Result;
@@ -74,33 +78,29 @@ use nure_tools::teachers::{find_teacher, Teacher};
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let teacher: Vec<Teacher> = find_teacher(String::from("Новіков"))?;
+    let teacher: Vec<Teacher> = find_teacher("Новіков")?;
     println!("teachers: {:#?}\n", teacher);
 
-    let teacher: Vec<Teacher> = find_teacher(String::from("Гліб"))?;
+    let teacher: Vec<Teacher> = find_teacher("Гліб")?;
     println!("teachers: {:#?}\n", teacher);
 
     Ok(())
 }
 ```
 **/
-pub fn find_teacher(name: String) -> Result<Vec<Teacher>> {
+pub fn find_teacher(name: &str) -> Result<Vec<Teacher>> {
     let teachers = get_teachers()?;
     let mut result: Vec<Teacher> = vec![];
 
     for teacher in teachers {
-        if find(&name, &teacher.full_name) {
+        if find(name, &teacher.full_name) {
             result.push(teacher);
         } else {
             continue;
         }
     }
 
-    if !result.is_empty() {
-        Ok(result)
-    } else {
-        Err(eyre!("Can't find teacher with name {}", name))
-    }
+    Ok(result)
 }
 
 /** Teacher struct.
