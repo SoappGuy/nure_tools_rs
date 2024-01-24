@@ -1,8 +1,11 @@
-use crate::groups::{parse_group_json, Group};
-use crate::lecture_rooms::LectureRoom;
-use crate::teachers::{parse_teacher_json, Teacher};
-use crate::utils::{convert_time_to_naivedatetime, convert_time_to_timestamp};
-use chrono::NaiveDateTime;
+use crate::{
+    groups::{parse_group_json, Group},
+    lecture_rooms::LectureRoom,
+    teachers::{parse_teacher_json, Teacher},
+    utils::Period,
+};
+use chrono::DateTime;
+use chrono_tz::Tz;
 use color_eyre::Result;
 use reqwest::blocking::get;
 use serde_json::{self, Map, Value};
@@ -46,11 +49,13 @@ fn main() -> Result<()> {
 
 pub fn get_schedule(
     request: Request,
-    mut start_time: String,
-    mut end_time: String,
+    start_time: DateTime<Tz>,
+    end_time: DateTime<Tz>,
 ) -> Result<Vec<Lecture>> {
-    start_time = convert_time_to_timestamp(start_time);
-    end_time = convert_time_to_timestamp(end_time);
+    // start_time = convert_time_to_timestamp(start_time);
+    // end_time = convert_time_to_timestamp(end_time);
+
+    // let start_time =
 
     let (request_type, request_id) = match request {
         Request::Group(group) => ("group", group.id),
@@ -68,8 +73,8 @@ pub fn get_schedule(
 
     if let Value::Array(vector) = response {
         let mut lecture_room: String = String::new();
-        let mut start_time: NaiveDateTime = NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
-        let mut end_time: NaiveDateTime = NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+        let mut start_time: i64 = 0;
+        let mut end_time: i64 = 0;
         let mut number_pair: u8 = 0;
         let mut lecture_type: String = String::new();
         let mut teachers: Vec<Teacher> = vec![];
@@ -82,10 +87,10 @@ pub fn get_schedule(
                     lecture_room = st.clone();
                 }
                 if let Value::Number(n) = obj.get("startTime").unwrap() {
-                    start_time = convert_time_to_naivedatetime(n.as_i64().unwrap());
+                    start_time = n.as_i64().unwrap();
                 }
                 if let Value::Number(n) = obj.get("endTime").unwrap() {
-                    end_time = convert_time_to_naivedatetime(n.as_i64().unwrap());
+                    end_time = n.as_i64().unwrap();
                 }
                 if let Value::Number(n) = obj.get("numberPair").unwrap() {
                     number_pair = n.as_i64().unwrap() as u8;
@@ -105,8 +110,7 @@ pub fn get_schedule(
 
                 result.push(Lecture::new(
                     lecture_room.clone(),
-                    start_time,
-                    end_time,
+                    Period::from_timestamp(start_time, end_time),
                     number_pair,
                     lecture_type.clone(),
                     teachers.clone(),
@@ -159,8 +163,7 @@ pub enum Request {
 #[derive(Debug, Clone)]
 pub struct Lecture {
     pub lecture_room: String,
-    pub start_time: NaiveDateTime,
-    pub end_time: NaiveDateTime,
+    pub period: Period,
     pub number_pair: u8,
     pub lecture_type: String,
     pub teachers: Vec<Teacher>,
@@ -179,8 +182,7 @@ pub struct Subject {
 impl Lecture {
     fn new(
         lecture_room: String,
-        start_time: NaiveDateTime,
-        end_time: NaiveDateTime,
+        period: Period,
         number_pair: u8,
         lecture_type: String,
         teachers: Vec<Teacher>,
@@ -189,8 +191,7 @@ impl Lecture {
     ) -> Self {
         Self {
             lecture_room,
-            start_time,
-            end_time,
+            period,
             number_pair,
             lecture_type,
             teachers,
