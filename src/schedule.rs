@@ -4,8 +4,6 @@ use crate::{
     teachers::{parse_teacher_json, Teacher},
     utils::Period,
 };
-use chrono::DateTime;
-use chrono_tz::Tz;
 use color_eyre::Result;
 use reqwest::blocking::get;
 use serde_json::{self, Map, Value};
@@ -16,9 +14,7 @@ Returns shedule for the given request in `Vec<Lecture>` format.
 
 # Arguments
  * request - accepts a [`Request`] enum with a [`Group`]/[`Teacher`]/[`LectureRoom`] object inside.
- * start_time - accepts a NaiveDateTime string in any valid format.
- * end_time - accepts a NaiveDateTime string in any valid format.
- * **for supported NaiveDateTime formats look at [`convert_time_to_timestamp`]**
+ * period - accepts a [`Period`] struct.
 
 # Examples
 ```
@@ -47,15 +43,12 @@ fn main() -> Result<()> {
 ```
 **/
 
-pub fn get_schedule(
-    request: Request,
-    start_time: DateTime<Tz>,
-    end_time: DateTime<Tz>,
-) -> Result<Vec<Lecture>> {
+pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
     // start_time = convert_time_to_timestamp(start_time);
     // end_time = convert_time_to_timestamp(end_time);
 
-    // let start_time =
+    let start_time = period.start_time.timestamp().to_string();
+    let end_time = period.end_time.timestamp().to_string();
 
     let (request_type, request_id) = match request {
         Request::Group(group) => ("group", group.id),

@@ -1,24 +1,21 @@
-use chrono::{DateTime, FixedOffset, NaiveDateTime, Utc};
-use chrono_tz::{
-    Europe::Kiev,
-    Tz::{self, Europe__Kiev},
-};
+use chrono::{DateTime, Duration, Utc};
+use chrono_tz::Tz::{self, Europe__Kiev};
 use dateparser::parse;
+use now::DateTimeNow;
 use regex::Regex;
 
 /** Period struct
 **/
 #[derive(Debug, Clone)]
 pub struct Period {
-    start_time: DateTime<Tz>,
-    end_time: DateTime<Tz>,
+    pub start_time: DateTime<Tz>,
+    pub end_time: DateTime<Tz>,
 }
 
 impl Period {
-    /** Create a new Period instance from a given String representations of a DateTime
-    # Arguments
-       * `start_time` - &str with start time in supported format.
-       * `end_time` - &str with end time in supported format.
+    /** Create a new Period instance from a given String representations of a DateTime.
+
+    Create a new Period instance from a given String representations of a DateTime.
 
     # Examples
     ```
@@ -37,7 +34,6 @@ impl Period {
 
         Ok(())
     }
-
     ```
     **/
     pub fn from_string(start_time: &str, end_time: &str) -> Self {
@@ -51,9 +47,6 @@ impl Period {
     }
 
     /** Create a new Period instance from a given timestamp representations of a DateTime
-    # Arguments
-       * `start_time` - i64 with start time in unix timestamp format.
-       * `end_time` - i64 with end time in unix timestamp format.
 
     # Examples
     ```
@@ -75,13 +68,104 @@ impl Period {
     ```
     **/
     pub fn from_timestamp(start_time: i64, end_time: i64) -> Self {
-        let start_time = parse(&start_time.to_string())
+        let start_time: DateTime<Tz> = parse(&start_time.to_string())
             .unwrap()
             .with_timezone(&Europe__Kiev);
-        let end_time = parse(&end_time.to_string())
+        let end_time: DateTime<Tz> = parse(&end_time.to_string())
             .unwrap()
             .with_timezone(&Europe__Kiev);
 
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of current day borders
+
+    # Examples
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let period: Period = Period::today();
+
+        println!("Period: {:#?}", period);
+
+        Ok(())
+    }
+    ```
+    **/
+    pub fn today() -> Self {
+        let today_date: DateTime<Tz> = Utc::now().with_timezone(&Europe__Kiev);
+
+        let start_time: DateTime<Tz> = today_date.beginning_of_day();
+        let end_time: DateTime<Tz> = today_date.end_of_day();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of current week borders
+
+    # Examples
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let period: Period = Period::this_week();
+
+        println!("Period: {:#?}", period);
+
+        Ok(())
+    }
+    ```
+    **/
+    pub fn this_week() -> Self {
+        let today_date: DateTime<Tz> = Utc::now().with_timezone(&Europe__Kiev);
+
+        let start_time: DateTime<Tz> = today_date.beginning_of_week();
+        let end_time: DateTime<Tz> = today_date.end_of_week();
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of next week borders
+
+    # Examples
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let period: Period = Period::next_week();
+
+        println!("Period: {:#?}", period);
+
+        Ok(())
+    }
+    ```
+    **/
+    pub fn next_week() -> Self {
+        let today_date: DateTime<Tz> = Utc::now()
+            .with_timezone(&Europe__Kiev)
+            .checked_add_signed(Duration::weeks(1))
+            .unwrap();
+
+        let start_time: DateTime<Tz> = today_date.beginning_of_week();
+        let end_time: DateTime<Tz> = today_date.end_of_week();
         Self {
             start_time,
             end_time,
