@@ -140,6 +140,19 @@ impl Period {
         }
     }
 
+    pub fn week_from(start_time: &str) -> Self {
+        let parsed_date = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
+
+        let start_time: DateTime<Tz> = parsed_date.beginning_of_week();
+
+        let end_time = parsed_date.end_of_week();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
     /** Create a new Period instance of next week borders
 
     # Examples
