@@ -3,6 +3,7 @@ use chrono_tz::Tz::{self, Europe__Kiev};
 use dateparser::parse;
 use now::DateTimeNow;
 use regex::Regex;
+use std::fmt;
 
 /** Period struct
 **/
@@ -99,11 +100,73 @@ impl Period {
     }
     ```
     **/
-    pub fn today() -> Self {
+    pub fn this_day() -> Self {
         let today_date: DateTime<Tz> = Utc::now().with_timezone(&Europe__Kiev);
 
         let start_time: DateTime<Tz> = today_date.beginning_of_day();
         let end_time: DateTime<Tz> = today_date.end_of_day();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of next day borders
+
+    # Examples
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let next_day = Period::next_day();
+
+        println!("{:#?}", next_day);
+
+        Ok(())
+    }
+
+    ```
+    **/
+    pub fn next_day() -> Self {
+        let today_date: DateTime<Tz> = Utc::now()
+            .with_timezone(&Europe__Kiev)
+            .checked_add_signed(Duration::days(1))
+            .unwrap();
+
+        let start_time: DateTime<Tz> = today_date.beginning_of_day();
+        let end_time: DateTime<Tz> = today_date.end_of_day();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of 1 day from start_time
+    # Examples:
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let day_from = Period::day_from("2023-01-02");
+
+        println!("{:#?}", day_from);
+
+        Ok(())
+    }
+
+    ```
+     **/
+    pub fn day_from(start_time: &str) -> Self {
+        let parsed_date: DateTime<Tz> = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
+
+        let start_time: DateTime<Tz> = parsed_date.beginning_of_day();
+        let end_time: DateTime<Tz> = parsed_date.end_of_day();
 
         Self {
             start_time,
@@ -140,19 +203,6 @@ impl Period {
         }
     }
 
-    pub fn week_from(start_time: &str) -> Self {
-        let parsed_date = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
-
-        let start_time: DateTime<Tz> = parsed_date.beginning_of_week();
-
-        let end_time = parsed_date.end_of_week();
-
-        Self {
-            start_time,
-            end_time,
-        }
-    }
-
     /** Create a new Period instance of next week borders
 
     # Examples
@@ -179,6 +229,37 @@ impl Period {
 
         let start_time: DateTime<Tz> = today_date.beginning_of_week();
         let end_time: DateTime<Tz> = today_date.end_of_week();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
+
+    /** Create a new Period instance of 1 week from start_time
+    # Examples:
+    ```
+    use color_eyre::Result;
+    use nure_tools::utils::Period;
+    fn main() -> Result<()> {
+        color_eyre::install()?;
+
+        let week_from = Period::week_from("2023-01-02");
+
+        println!("{:#?}", week_from);
+
+        Ok(())
+    }
+
+    ```
+     **/
+    pub fn week_from(start_time: &str) -> Self {
+        let parsed_date = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
+
+        let start_time: DateTime<Tz> = parsed_date.beginning_of_week();
+
+        let end_time = parsed_date.end_of_week();
+
         Self {
             start_time,
             end_time,
@@ -218,4 +299,14 @@ fn main() -> Result<()> {
 pub fn find(find_it: &str, search_here: &str) -> bool {
     let regex = Regex::new(find_it.to_lowercase().as_str()).unwrap();
     regex.find(search_here.to_lowercase().as_str()).is_some()
+}
+
+impl fmt::Display for Period {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(
+            f,
+            "start_time: {}, end_time: {}",
+            self.start_time, self.end_time
+        )
+    }
 }
