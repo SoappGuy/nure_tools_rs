@@ -1,11 +1,11 @@
 use color_eyre::Result;
-use nure_tools::utils::Period;
+use nure_tools::teachers::{find_exect_teacher, Teacher};
+
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let day_from = Period::day_from("2023-01-02");
-
-    println!("{}", day_from);
+    let teacher: Teacher = find_exect_teacher("Терещенко Г. Ю.")?;
+    println!("teacher: {:#?}", teacher);
 
     Ok(())
 }

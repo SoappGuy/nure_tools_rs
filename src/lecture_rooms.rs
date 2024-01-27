@@ -100,6 +100,43 @@ pub fn find_lecture_room(name: &str) -> Result<Vec<LectureRoom>> {
     Ok(result)
 }
 
+/** Find exect lecture_room.
+
+Returns 1 exect matched lecture_room.
+
+# Arguments
+
+* `name` - &str with lecture_room name to search for.
+
+# Examples
+```
+use color_eyre::Result;
+use nure_tools::lecture_rooms::{find_exect_lecture_room, LectureRoom};
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
+    let lecture_room: LectureRoom = find_exect_lecture_room("ФІЛІЯ")?;
+    println!("lecture_room: {:#?}", lecture_room);
+
+    Ok(())
+}
+```
+**/
+pub fn find_exect_lecture_room(name: &str) -> Result<LectureRoom> {
+    let lecture_rooms = get_lecture_rooms()?;
+
+    for lecture_rooms in lecture_rooms {
+        if name.to_lowercase() == lecture_rooms.name.to_lowercase() {
+            return Ok(lecture_rooms);
+        } else {
+            continue;
+        }
+    }
+
+    Err(eyre!("There is no lecture_rooms with exect name {}", name))
+}
+
 /** LectureRoom struct.
 **/
 #[derive(Debug)]

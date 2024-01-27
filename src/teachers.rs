@@ -103,6 +103,43 @@ pub fn find_teacher(name: &str) -> Result<Vec<Teacher>> {
     Ok(result)
 }
 
+/** Find exect teacher.
+
+Returns 1 exect matched teacher.
+
+# Arguments
+
+* `name` - &str with teacher name to search for.
+
+# Examples
+```
+use color_eyre::Result;
+use nure_tools::teachers::{find_exect_teacher, Teacher};
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
+    let teacher: Teacher = find_exect_teacher("Терещенко Г. Ю.")?;
+    println!("teacher: {:#?}", teacher);
+
+    Ok(())
+}
+```
+**/
+pub fn find_exect_teacher(name: &str) -> Result<Teacher> {
+    let teacher = get_teachers()?;
+
+    for teacher in teacher {
+        if name.to_lowercase() == teacher.short_name.to_lowercase() {
+            return Ok(teacher);
+        } else {
+            continue;
+        }
+    }
+
+    Err(eyre!("There is no teachers with exect name {}", name))
+}
+
 /** Teacher struct.
 **/
 #[derive(Debug, Clone)]

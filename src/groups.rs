@@ -99,6 +99,43 @@ pub fn find_group(name: &str) -> Result<Vec<Group>> {
     Ok(result)
 }
 
+/** Find exect group.
+
+Returns 1 exect matched group.
+
+# Arguments
+
+* `name` - &str with group name to search for.
+
+# Examples
+```
+use color_eyre::Result;
+use nure_tools::groups::{find_exect_group, Group};
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
+    let group: Group = find_exect_group("пзпі-23-2")?;
+    println!("group: {:#?}", group);
+
+    Ok(())
+}
+```
+**/
+pub fn find_exect_group(name: &str) -> Result<Group> {
+    let groups = get_groups()?;
+
+    for group in groups {
+        if name.to_lowercase() == group.name.to_lowercase() {
+            return Ok(group);
+        } else {
+            continue;
+        }
+    }
+
+    Err(eyre!("There is no group with exect name {}", name))
+}
+
 /** Group struct.
 **/
 #[derive(Debug, Clone)]
