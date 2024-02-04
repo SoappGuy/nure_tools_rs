@@ -1,11 +1,18 @@
-use color_eyre::Result;
-use nure_tools::teachers::{find_exect_teacher, Teacher};
+use anyhow::Result;
+use nure_tools::utils::find;
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
+    let find_it: &str = "пі";
+    let search_here: &str = "пзпі-23-2";
 
-    let teacher: Teacher = find_exect_teacher("Терещенко Г. Ю.")?;
-    println!("teacher: {:#?}", teacher);
+    println!(
+        "{}",
+        if find(find_it, search_here)? {
+            "found!"
+        } else {
+            "nothing :("
+        }
+    );
 
     Ok(())
 }

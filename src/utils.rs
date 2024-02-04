@@ -1,8 +1,12 @@
+use crate::errors::{FindError, ParseError, RequestError};
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use chrono_tz::Tz::{self, Europe__Kiev};
 use dateparser::parse;
 use now::DateTimeNow;
 use regex::Regex;
+use reqwest::blocking::Response;
+use serde_json::Value;
 use std::fmt;
 
 /** Period struct
@@ -20,84 +24,98 @@ impl Period {
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let start_time: &str = "2024-01-02";
+    let end_time: &str = "January 3, 2024";
 
-    fn main() -> Result<()> {
-        color_eyre::install()?;
+    let period: Period = Period::from_string(start_time, end_time)?;
 
-        let start_time: &str = "2024-01-02";
-        let end_time: &str = "January 3, 2024";
-
-        let period: Period = Period::from_string(start_time, end_time);
-
-        println!("Period: {:#?}", period);
-
-        Ok(())
-    }
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
-    **/
-    pub fn from_string(start_time: &str, end_time: &str) -> Self {
-        let start_time: DateTime<Tz> = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
-        let end_time: DateTime<Tz> = parse(end_time).unwrap().with_timezone(&Europe__Kiev);
+    # Errors
+    This function fails if:
+        [`ParseError::InvalidStringProvided`] - Can't parse datetime from given string.
+    */
+    pub fn from_string(start_time_str: &str, end_time_str: &str) -> Result<Self> {
+        let start_time: DateTime<Tz> = match parse(start_time_str) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidStringProvided(String::from(
+                    start_time_str
+                ))));
+            }
+        };
+        let end_time: DateTime<Tz> = match parse(end_time_str) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidStringProvided(String::from(
+                    end_time_str
+                ))));
+            }
+        };
 
-        Self {
+        Ok(Self {
             start_time,
             end_time,
-        }
+        })
     }
 
     /** Create a new Period instance from a given timestamp representations of a DateTime
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let start_time: i64 = 1704146400;
+    let end_time: i64 = 1704232800;
 
-    fn main() -> Result<()> {
-        color_eyre::install()?;
+    let period: Period = Period::from_timestamp(start_time, end_time)?;
 
-        let start_time: i64 = 1704146400;
-        let end_time: i64 = 1704232800;
-
-        let period: Period = Period::from_timestamp(start_time, end_time);
-
-        println!("Period: {:#?}", period);
-
-        Ok(())
-    }
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
-    **/
-    pub fn from_timestamp(start_time: i64, end_time: i64) -> Self {
-        let start_time: DateTime<Tz> = parse(&start_time.to_string())
-            .unwrap()
-            .with_timezone(&Europe__Kiev);
-        let end_time: DateTime<Tz> = parse(&end_time.to_string())
-            .unwrap()
-            .with_timezone(&Europe__Kiev);
+    # Errors
+    This function fails if:
+        [`ParseError::InvalidTimestampProvided`] - Can't parse datetime from given timestamp.
+    */
+    pub fn from_timestamp(start_time_i64: i64, end_time_i64: i64) -> Result<Self> {
+        let start_time_i64 = start_time_i64.to_string();
+        let end_time_i64 = end_time_i64.to_string();
 
-        Self {
+        let start_time: DateTime<Tz> = match parse(&start_time_i64) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidTimestampProvided(
+                    start_time_i64
+                )));
+            }
+        };
+
+        let end_time: DateTime<Tz> = match parse(&end_time_i64) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidTimestampProvided(end_time_i64)));
+            }
+        };
+
+        Ok(Self {
             start_time,
             end_time,
-        }
+        })
     }
 
     /** Create a new Period instance of current day borders
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::this_day();
 
-    fn main() -> Result<()> {
-        color_eyre::install()?;
-
-        let period: Period = Period::today();
-
-        println!("Period: {:#?}", period);
-
-        Ok(())
-    }
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
     **/
     pub fn this_day() -> Self {
@@ -116,18 +134,12 @@ impl Period {
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
-    fn main() -> Result<()> {
-        color_eyre::install()?;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::next_day();
 
-        let next_day = Period::next_day();
-
-        println!("{:#?}", next_day);
-
-        Ok(())
-    }
-
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
     **/
     pub fn next_day() -> Self {
@@ -148,48 +160,46 @@ impl Period {
     /** Create a new Period instance of 1 day from start_time
     # Examples:
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
-    fn main() -> Result<()> {
-        color_eyre::install()?;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::day_from("2023-01-02")?;
 
-        let day_from = Period::day_from("2023-01-02");
-
-        println!("{:#?}", day_from);
-
-        Ok(())
-    }
-
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
-     **/
-    pub fn day_from(start_time: &str) -> Self {
-        let parsed_date: DateTime<Tz> = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
+    # Errors
+    This function fails if:
+     [`ParseError::InvalidStringProvided`] - Can't parse datetime from given string.
+     */
+    pub fn day_from(start_time_str: &str) -> Result<Self> {
+        let parsed_date: DateTime<Tz> = match parse(start_time_str) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidStringProvided(String::from(
+                    start_time_str
+                ))));
+            }
+        };
 
         let start_time: DateTime<Tz> = parsed_date.beginning_of_day();
         let end_time: DateTime<Tz> = parsed_date.end_of_day();
 
-        Self {
+        Ok(Self {
             start_time,
             end_time,
-        }
+        })
     }
 
     /** Create a new Period instance of current week borders
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::this_week();
 
-    fn main() -> Result<()> {
-        color_eyre::install()?;
-
-        let period: Period = Period::this_week();
-
-        println!("Period: {:#?}", period);
-
-        Ok(())
-    }
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
     **/
     pub fn this_week() -> Self {
@@ -207,18 +217,12 @@ impl Period {
 
     # Examples
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::next_week();
 
-    fn main() -> Result<()> {
-        color_eyre::install()?;
-
-        let period: Period = Period::next_week();
-
-        println!("Period: {:#?}", period);
-
-        Ok(())
-    }
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
     **/
     pub fn next_week() -> Self {
@@ -239,31 +243,44 @@ impl Period {
     /** Create a new Period instance of 1 week from start_time
     # Examples:
     ```
-    use color_eyre::Result;
-    use nure_tools::utils::Period;
-    fn main() -> Result<()> {
-        color_eyre::install()?;
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+    let period: Period = Period::week_from("2023-01-02")?;
 
-        let week_from = Period::week_from("2023-01-02");
-
-        println!("{:#?}", week_from);
-
-        Ok(())
-    }
-
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
     ```
-     **/
-    pub fn week_from(start_time: &str) -> Self {
-        let parsed_date = parse(start_time).unwrap().with_timezone(&Europe__Kiev);
+    # Errors
+    This function fails if:
+        [`ParseError::InvalidStringProvided`] - Can't parse datetime from given string.
+     */
+    pub fn week_from(start_time_str: &str) -> Result<Self> {
+        let parsed_date: DateTime<Tz> = match parse(start_time_str) {
+            Ok(parsed) => parsed.with_timezone(&Europe__Kiev),
+            Err(_) => {
+                return Err(anyhow!(ParseError::InvalidStringProvided(String::from(
+                    start_time_str
+                ))));
+            }
+        };
 
         let start_time: DateTime<Tz> = parsed_date.beginning_of_week();
-
         let end_time = parsed_date.end_of_week();
 
-        Self {
+        Ok(Self {
             start_time,
             end_time,
-        }
+        })
+    }
+}
+
+impl fmt::Display for Period {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(
+            f,
+            "start_time: {}, end_time: {}",
+            self.start_time, self.end_time
+        )
     }
 }
 
@@ -274,39 +291,61 @@ impl Period {
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::utils::find;
+# use anyhow::Error;
+# use nure_tools::utils::find;
+let find_it: &str = "пі";
+let search_here: &str = "пзпі-23-2";
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let find_it: &str = "пі";
-    let search_here: &str = "пзпі-23-2";
-
-    println!(
-        "{}",
-        if find(find_it, search_here) {
-            "found!"
-        } else {
-            "nothing :("
-        }
-    );
-
-    Ok(())
-}
+println!(
+    "{}",
+    if find(find_it, search_here)? {
+        "found!"
+    } else {
+        "nothing :("
+    }
+);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * [`FindError::InvalidRegexString`] - Regex engine can't parse given string for any reason.
 **/
-pub fn find(find_it: &str, search_here: &str) -> bool {
-    let regex = Regex::new(find_it.to_lowercase().as_str()).unwrap();
-    regex.find(search_here.to_lowercase().as_str()).is_some()
+pub fn find(find_it: &str, search_here: &str) -> Result<bool> {
+    let regex: Regex = match Regex::new(find_it.to_lowercase().as_str()) {
+        Ok(compiled) => compiled,
+        Err(_) => {
+            return Err(anyhow!(FindError::InvalidRegexString(String::from(
+                find_it
+            ))));
+        }
+    };
+
+    Ok(regex.find(search_here.to_lowercase().as_str()).is_some())
 }
 
-impl fmt::Display for Period {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "start_time: {}, end_time: {}",
-            self.start_time, self.end_time
-        )
+/** Helper function to catch errors while waiting for Get result.
+
+You probably will never use it, but you can if you want, see example in [get_groups]/[get_teachers]/[get_lecture_rooms]/[get_schedule] functions sources.
+
+[get_groups]: `crate::groups::get_groups`
+[get_teachers]: `crate::teachers::get_teachers`
+[get_lecture_rooms]: `crate::lecture_rooms::get_lecture_rooms`
+[get_schedule]: `crate::schedule::get_schedule`
+**/
+pub fn get_wrapper(get_response: reqwest::Result<Response>) -> Result<Value> {
+    match get_response {
+        Ok(value) => match value.status().as_u16() {
+            200 => match value.json::<serde_json::Value>() {
+                Ok(value) => Ok(value),
+                Err(_) => Err(anyhow!(RequestError::NotJson)),
+            },
+            _ => Err(anyhow!(RequestError::BadResponse(
+                String::from(value.status().canonical_reason().unwrap_or("")),
+                value.status().as_u16()
+            ))),
+        },
+
+        Err(_) => Err(anyhow!(RequestError::GetFailed)),
     }
 }

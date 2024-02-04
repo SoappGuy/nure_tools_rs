@@ -1,5 +1,8 @@
-use crate::utils::find;
-use color_eyre::{eyre::eyre, Result};
+use crate::{
+    errors::{FindError, RequestError},
+    utils::{find, get_wrapper},
+};
+use anyhow::{anyhow, Result};
 use reqwest::blocking::get;
 use serde_json::{self, Value};
 
@@ -15,12 +18,14 @@ pub fn parse_lecture_room_json(vector: Vec<Value>) -> Vec<LectureRoom> {
 
     for element in vector {
         if let Value::Object(obj) = element {
-            if let Value::Number(n) = obj.get("id").unwrap() {
-                id = n.as_i64().unwrap() as i32;
+            if let Some(Value::Number(n)) = obj.get("id") {
+                id = n.as_i64().unwrap_or(0) as i32;
             }
-            if let Value::String(st) = obj.get("name").unwrap() {
+
+            if let Some(Value::String(st)) = obj.get("name") {
                 name = st.clone();
             }
+
             result.push(LectureRoom::new(id, name.clone()));
         };
     }
@@ -34,27 +39,27 @@ Returns all existing lecture rooms in `Vec<LectureRoom>` format.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::lecture_rooms::{get_lecture_rooms, LectureRoom};
-
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let lecture_rooms: Vec<LectureRoom> = get_lecture_rooms()?;
-    println!("{:#?}", lecture_rooms);
-
-    Ok(())
-}
+# use nure_tools::lecture_rooms::{get_lecture_rooms, LectureRoom};
+# use anyhow::Error;
+let lecture_rooms: Vec<LectureRoom> = get_lecture_rooms()?;
+println!("{:#?}", lecture_rooms);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `RequestError::GetFailed` - Get request fails.
+ * `RequestError::NotJson` - Server returns value not in json format.
+ * `RequestError::BadResponse` - Server returns any response except 200.
+ * `RequestError::InvalidReturn` - Server returns value in unexpected format.
 **/
 pub fn get_lecture_rooms() -> Result<Vec<LectureRoom>> {
-    let response = get("https://api.mindenit.tech/auditories")?.json::<serde_json::Value>()?;
-
+    let response = get_wrapper(get("https://api.mindenit.tech/auditories"))?;
     if let Value::Array(vector) = response {
         let result: Vec<LectureRoom> = parse_lecture_room_json(vector);
         Ok(result)
     } else {
-        Err(eyre!("Can't get lecture_rooms, bad response {}", response))
+        Err(anyhow!(RequestError::InvalidReturn))
     }
 }
 
@@ -68,36 +73,41 @@ Returns all matched lecture_rooms in `Vec<LectureRoom>` format.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::lecture_rooms::{find_lecture_room, LectureRoom};
+# use anyhow::Error;
+# use nure_tools::lecture_rooms::{find_lecture_room, LectureRoom};
+let lecture_room: Vec<LectureRoom> = find_lecture_room("і")?;
+println!("lecture_rooms: {:#?}\n", lecture_room);
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let lecture_room: Vec<LectureRoom> = find_lecture_room("і")?;
-    println!("lecture_rooms: {:#?}\n", lecture_room);
-
-    let lecture_room: Vec<LectureRoom> = find_lecture_room("філія")?;
-    println!("lecture_rooms: {:#?}\n", lecture_room);
-
-    Ok(())
-}
+let lecture_room: Vec<LectureRoom> = find_lecture_room("філія")?;
+println!("lecture_rooms: {:#?}\n", lecture_room);
+# Ok::<(), Error>(())
 ```
-**/
 
+# Errors
+This function fails if:
+ * `FindError::InvalidLectureRoomName(name)` - There is no lecture_room that matches given name.
+ * [`get_lecture_rooms`] fails.
+ * [`find`] fails.
+**/
 pub fn find_lecture_room(name: &str) -> Result<Vec<LectureRoom>> {
     let lecture_rooms = get_lecture_rooms()?;
     let mut result: Vec<LectureRoom> = vec![];
 
     for lecture_room in lecture_rooms {
-        if find(name, &lecture_room.name) {
+        if find(name, &lecture_room.name)? {
             result.push(lecture_room);
         } else {
             continue;
         }
     }
 
-    Ok(result)
+    if result.is_empty() {
+        Err(anyhow!(FindError::InvalidLectureRoomName(String::from(
+            name
+        ))))
+    } else {
+        Ok(result)
+    }
 }
 
 /** Find exect lecture_room.
@@ -110,18 +120,17 @@ Returns 1 exect matched lecture_room.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::lecture_rooms::{find_exect_lecture_room, LectureRoom};
-
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let lecture_room: LectureRoom = find_exect_lecture_room("ФІЛІЯ")?;
-    println!("lecture_room: {:#?}", lecture_room);
-
-    Ok(())
-}
+# use anyhow::Error;
+# use nure_tools::lecture_rooms::{find_exect_lecture_room, LectureRoom};
+let lecture_room: LectureRoom = find_exect_lecture_room("ФІЛІЯ")?;
+println!("lecture_room: {:#?}", lecture_room);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `FindError::InvalidLectureRoomName(name)` - There is no lecture_room that matches given name.
+ * [`get_lecture_rooms`] fails.
 **/
 pub fn find_exect_lecture_room(name: &str) -> Result<LectureRoom> {
     let lecture_rooms = get_lecture_rooms()?;
@@ -134,7 +143,7 @@ pub fn find_exect_lecture_room(name: &str) -> Result<LectureRoom> {
         }
     }
 
-    Err(eyre!("There is no lecture_rooms with exect name {}", name))
+    Err(anyhow!(FindError::InvalidGroupName(String::from(name))))
 }
 
 /** LectureRoom struct.

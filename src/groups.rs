@@ -1,7 +1,10 @@
-use crate::utils::find;
-use color_eyre::{eyre::eyre, Result};
+use crate::{
+    errors::{FindError, RequestError},
+    utils::{find, get_wrapper},
+};
+use anyhow::{anyhow, Result};
 use reqwest::blocking::get;
-use serde_json::{self, Value};
+use serde_json::Value;
 
 /** Helper function to parse group json returned by API into [`Group`] struct.
 
@@ -15,10 +18,10 @@ pub fn parse_group_json(vector: Vec<Value>) -> Vec<Group> {
 
     for element in vector {
         if let Value::Object(obj) = element {
-            if let Value::Number(n) = obj.get("id").unwrap() {
-                id = n.as_i64().unwrap() as i32;
+            if let Some(Value::Number(n)) = obj.get("id") {
+                id = n.as_i64().unwrap_or(0) as i32;
             }
-            if let Value::String(st) = obj.get("name").unwrap() {
+            if let Some(Value::String(st)) = obj.get("name") {
                 name = st.clone();
             }
             result.push(Group::new(id, name.clone()));
@@ -34,27 +37,27 @@ Returns all existing groups in `Vec<Group>` format.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::groups::{get_groups, Group};
-
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let groups: Vec<Group> = get_groups()?;
-    println!("{:#?}", groups);
-
-    Ok(())
-}
+# use nure_tools::groups::{get_groups, Group};
+# use anyhow::Error;
+let groups: Vec<Group> = get_groups()?;
+println!("{:#?}", groups);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `RequestError::GetFailed` - Get request fails.
+ * `RequestError::NotJson` - Server returns value not in json format.
+ * `RequestError::BadResponse` - Server returns any response except 200.
+ * `RequestError::InvalidReturn` - Server returns value in unexpected format.
 **/
 pub fn get_groups() -> Result<Vec<Group>> {
-    let response = get("https://api.mindenit.tech/groups")?.json::<serde_json::Value>()?;
-
+    let response = get_wrapper(get("https://api.mindenit.tech/groups"))?;
     if let Value::Array(vector) = response {
         let result: Vec<Group> = parse_group_json(vector);
         Ok(result)
     } else {
-        Err(eyre!("Can't get groups, bad response {}", response))
+        Err(anyhow!(RequestError::InvalidReturn))
     }
 }
 
@@ -68,35 +71,39 @@ Returns all matched groups in `Vec<Group>` format.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::groups::{find_group, Group};
+# use anyhow::Error;
+# use nure_tools::groups::{find_group, Group};
+let group: Vec<Group> = find_group("пзпі-23-2")?;
+println!("groups: {:#?}\n", group);
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let group: Vec<Group> = find_group("пзпі-23-2")?;
-    println!("groups: {:#?}\n", group);
-
-    let group: Vec<Group> = find_group("пі-23")?;
-    println!("groups: {:#?}\n", group);
-
-    Ok(())
-}
+let group: Vec<Group> = find_group("пі-23")?;
+println!("groups: {:#?}\n", group);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `FindError::InvalidGroupName(name)` - There is no group that matches given name.
+ * [`get_groups`] fails.
+ * [`find`] fails.
 **/
 pub fn find_group(name: &str) -> Result<Vec<Group>> {
     let groups = get_groups()?;
     let mut result: Vec<Group> = vec![];
 
     for group in groups {
-        if find(name, &group.name) {
+        if find(name, &group.name)? {
             result.push(group);
         } else {
             continue;
         }
     }
 
-    Ok(result)
+    if result.is_empty() {
+        Err(anyhow!(FindError::InvalidGroupName(String::from(name))))
+    } else {
+        Ok(result)
+    }
 }
 
 /** Find exect group.
@@ -109,18 +116,17 @@ Returns 1 exect matched group.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::groups::{find_exect_group, Group};
-
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let group: Group = find_exect_group("пзпі-23-2")?;
-    println!("group: {:#?}", group);
-
-    Ok(())
-}
+# use anyhow::Error;
+# use nure_tools::groups::{find_exect_group, Group};
+let group: Group = find_exect_group("пзпі-23-2")?;
+println!("group: {:#?}", group);
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `FindError::InvalidGroupName(name)` - There is no group that matches given name.
+ * [`get_groups`] fails.
 **/
 pub fn find_exect_group(name: &str) -> Result<Group> {
     let groups = get_groups()?;
@@ -133,7 +139,7 @@ pub fn find_exect_group(name: &str) -> Result<Group> {
         }
     }
 
-    Err(eyre!("There is no group with exect name {}", name))
+    Err(anyhow!(FindError::InvalidGroupName(String::from(name))))
 }
 
 /** Group struct.

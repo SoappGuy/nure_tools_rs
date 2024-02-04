@@ -3,8 +3,8 @@
 //! `nure_tools` is a crate to synchronously interact with Mindenit API.
 
 /**
-Groups related functions
-**/
+Groups related functions.
+*/
 pub mod groups;
 
 /**
@@ -13,16 +13,21 @@ LectureRooms related functions
 pub mod lecture_rooms;
 
 /**
-Schedule related functions
-**/
+Schedule related functions.
+*/
 pub mod schedule;
 
 /**
-Teachers related functions
-**/
+Teachers related functions.
+*/
 pub mod teachers;
 
 /**
-Usefull utilities
-**/
+Usefull utilities.
+*/
 pub mod utils;
+
+/**
+Errors enums implementation.
+*/
+pub mod errors;

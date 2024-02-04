@@ -1,10 +1,11 @@
 use crate::{
+    errors::RequestError,
     groups::{parse_group_json, Group},
     lecture_rooms::LectureRoom,
     teachers::{parse_teacher_json, Teacher},
-    utils::Period,
+    utils::{get_wrapper, Period},
 };
-use color_eyre::Result;
+use anyhow::{anyhow, Result};
 use reqwest::blocking::get;
 use serde_json::{self, Map, Value};
 
@@ -18,35 +19,34 @@ Returns shedule for the given request in `Vec<Lecture>` format.
 
 # Examples
 ```
-use color_eyre::Result;
-use nure_tools::{
-    groups::{find_group, Group},
-    schedule::{get_schedule, Lecture, Request},
-};
-fn main() -> Result<()> {
-    color_eyre::install()?;
+# use anyhow::Error;
+# use nure_tools::{
+#     groups::{find_group, Group},
+#     schedule::{get_schedule, Lecture, Request},
+#     utils::Period,
+# };
+let groups_response: Vec<Group> = find_group("пзпі-23-2")?;
 
-    let groups_response: Vec<Group> = find_group(String::from("пзпі-23-2"))?;
-
-    for group in groups_response {
-        let schedule_request_bygroup: Request = Request::Group(group);
-        let schedule_response: Vec<Lecture> = get_schedule(
-            schedule_request_bygroup,
-            String::from("2024-01-02"),
-            String::from("2024-01-03"),
-        )?;
-        print!("{:#?}", schedule_response);
-    }
-
-    Ok(())
+for group in groups_response {
+    let schedule_request_bygroup: Request = Request::Group(group);
+    let schedule_response: Vec<Lecture> = get_schedule(
+        schedule_request_bygroup,
+        Period::from_string("2024-01-02", "2024-01-03")?,
+    )?;
+    println!("{:#?}", schedule_response);
 }
+# Ok::<(), Error>(())
 ```
+
+# Errors
+This function fails if:
+ * `RequestError::GetFailed` - Get request fails.
+ * `RequestError::NotJson` - Server returns value not in json format.
+ * `RequestError::BadResponse` - Server returns any response except 200.
+ * `RequestError::InvalidReturn` - Server returns value in unexpected format.
+
 **/
-
 pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
-    // start_time = convert_time_to_timestamp(start_time);
-    // end_time = convert_time_to_timestamp(end_time);
-
     let start_time = period.start_time.timestamp().to_string();
     let end_time = period.end_time.timestamp().to_string();
 
@@ -56,11 +56,10 @@ pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
         Request::LectureRoom(lecture_room) => ("auditory", lecture_room.id),
     };
 
-    let response = get(format!(
+    let response = get_wrapper(get(format!(
         "https://api.mindenit.tech/schedule?type={}&id={}&start_time={}&end_time={}",
         request_type, request_id, start_time, end_time,
-    ))?
-    .json::<serde_json::Value>()?;
+    )))?;
 
     let mut result: Vec<Lecture> = Vec::new();
 
@@ -103,7 +102,7 @@ pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
 
                 result.push(Lecture::new(
                     lecture_room.clone(),
-                    Period::from_timestamp(start_time, end_time),
+                    Period::from_timestamp(start_time, end_time)?,
                     number_pair,
                     lecture_type.clone(),
                     teachers.clone(),
@@ -112,9 +111,11 @@ pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
                 ));
             };
         }
-    }
 
-    Ok(result)
+        Ok(result)
+    } else {
+        Err(anyhow!(RequestError::InvalidReturn))
+    }
 }
 
 /** Helper function to parse subject json returned by API into [`Subject`] struct.
@@ -130,7 +131,7 @@ pub fn parse_subject_json(obj: Map<String, Value>) -> Subject {
         brief = st.clone();
     }
     if let Value::Number(n) = obj.get("id").unwrap() {
-        id = n.as_i64().unwrap() as i32;
+        id = n.as_i64().unwrap_or(0) as i32;
     }
     if let Value::String(st) = obj.get("title").unwrap() {
         title = st.clone();
@@ -165,7 +166,7 @@ pub struct Lecture {
 }
 /** Subject struct.
 **/
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Subject {
     pub brief: String,
     pub id: i32,
@@ -197,15 +198,5 @@ impl Lecture {
 impl Subject {
     fn new(brief: String, id: i32, title: String) -> Self {
         Self { brief, id, title }
-    }
-}
-
-impl Default for Subject {
-    fn default() -> Self {
-        Self {
-            brief: String::from("empty"),
-            id: 0,
-            title: String::from("empty"),
-        }
     }
 }
