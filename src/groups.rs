@@ -155,3 +155,9 @@ impl Group {
         Self { id, name }
     }
 }
+
+impl std::fmt::Display for Group {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
