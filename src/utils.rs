@@ -105,6 +105,32 @@ impl Period {
             end_time,
         })
     }
+    /** Create a new Period instance of day from current_time.
+
+    # Examples
+    ```
+    # use anyhow::Error;
+    # use nure_tools::utils::Period;
+
+    let period: Period = Period::now();
+
+    println!("Period: {:#?}", period);
+    # Ok::<(), Error>(())
+    ```
+    # Errors
+    This function fails if:
+        [`ParseError::InvalidTimestampProvided`] - Can't parse datetime from given timestamp.
+
+    */
+    pub fn now() -> Self {
+        let start_time: DateTime<Tz> = Utc::now().with_timezone(&Europe__Kiev);
+        let end_time: DateTime<Tz> = start_time.end_of_day();
+
+        Self {
+            start_time,
+            end_time,
+        }
+    }
 
     /** Create a new Period instance of current day borders
 
