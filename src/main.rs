@@ -7,6 +7,7 @@ use nure_tools::{
 
 fn main() -> Result<(), Error> {
     let groups_response: Vec<Group> = find_group("пзпі-23-2")?;
+    let _a = 2;
 
     for group in groups_response {
         let schedule_request_bygroup: Request = Request::Group(group);

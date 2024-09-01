@@ -56,7 +56,7 @@ This function fails if:
  * `RequestError::InvalidReturn` - Server returns value in unexpected format.
 **/
 pub fn get_teachers() -> Result<Vec<Teacher>> {
-    let response = get_wrapper(get("https://api.mindenit.tech/teachers"))?;
+    let response = get_wrapper(get("https://api.mindenit.tech/lists/teachers"))?;
     if let Value::Array(vector) = response {
         let result: Vec<Teacher> = parse_teacher_json(vector);
         Ok(result)

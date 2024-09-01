@@ -51,13 +51,13 @@ pub fn get_schedule(request: Request, period: Period) -> Result<Vec<Lecture>> {
     let end_time = period.end_time.timestamp().to_string();
 
     let (request_type, request_id) = match request {
-        Request::Group(group) => ("group", group.id),
-        Request::Teacher(teacher) => ("teacher", teacher.id),
-        Request::LectureRoom(lecture_room) => ("auditory", lecture_room.id),
+        Request::Group(group) => ("groups", group.id),
+        Request::Teacher(teacher) => ("teachers", teacher.id),
+        Request::LectureRoom(lecture_room) => ("auditories", lecture_room.id),
     };
 
     let response = get_wrapper(get(format!(
-        "https://api.mindenit.tech/schedule?type={}&id={}&start_time={}&end_time={}",
+        "https://api.mindenit.tech/schedule/{}/{}?start={}&end={}",
         request_type, request_id, start_time, end_time,
     )))?;
 

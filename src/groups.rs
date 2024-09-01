@@ -52,7 +52,7 @@ This function fails if:
  * `RequestError::InvalidReturn` - Server returns value in unexpected format.
 **/
 pub fn get_groups() -> Result<Vec<Group>> {
-    let response = get_wrapper(get("https://api.mindenit.tech/groups"))?;
+    let response = get_wrapper(get("https://api.mindenit.tech/lists/groups"))?;
     if let Value::Array(vector) = response {
         let result: Vec<Group> = parse_group_json(vector);
         Ok(result)
